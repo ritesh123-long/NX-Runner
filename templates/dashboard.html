@@ -1,40 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link rel="stylesheet" href="/static/style.css">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-body{font-family:Arial;padding:10px}
-button{margin:2px}
-iframe{width:100%;height:250px}
-</style>
 </head>
 <body>
 
-<h3>Python Script Panel</h3>
-
-<form action="/upload" method="post" enctype="multipart/form-data">
-<input type="file" name="file">
-<button>Upload (py / zip)</button>
-</form>
-
-<hr>
+<div class="card">
+  <h3>🚀 Python Script Manager</h3>
+  <form action="/upload" method="post" enctype="multipart/form-data" class="row">
+    <input type="file" name="file">
+    <button>Upload</button>
+  </form>
+</div>
 
 {% for f in files %}
-<div>
-<b>{{f}}</b>
-<button onclick="run('{{f}}')">Run</button>
-<button onclick="stop('{{f}}')">Stop</button>
-<button onclick="del('{{f}}')">Delete</button>
-{% if f in running %} 🟢 {% endif %}
-<iframe src="/logs/{{f}}"></iframe>
+<div class="card">
+  <h3>
+    {{f}}
+    {% if f in running %}
+      <span class="running">● RUNNING</span>
+    {% else %}
+      <span class="stopped">● STOPPED</span>
+    {% endif %}
+  </h3>
+
+  <div class="row">
+    <button onclick="run('{{f}}')">Run</button>
+    <button class="stop" onclick="stop('{{f}}')">Stop</button>
+    <button class="delete" onclick="del('{{f}}')">Delete</button>
+  </div>
+
+  <br>
+  <iframe src="/logs/{{f}}"></iframe>
 </div>
-<hr>
 {% endfor %}
 
 <script>
-function run(n){fetch("/run",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})}
-function stop(n){fetch("/stop",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})}
-function del(n){fetch("/delete",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})}).then(()=>location.reload())}
+function run(n){
+ fetch("/run",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})
+}
+function stop(n){
+ fetch("/stop",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})
+}
+function del(n){
+ fetch("/delete",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})
+ .then(()=>location.reload())
+}
+</script>
+
+</body>
+</html>function del(n){fetch("/delete",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})}).then(()=>location.reload())}
 </script>
 
 </body>

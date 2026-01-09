@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="/static/style.css">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+
+<div class="card">
+  <h2>🧠 Python Script Control Panel</h2>
+
+  <input id="search" placeholder="🔍 Search script..." onkeyup="filter()">
+
+  <div class="row" style="margin-top:10px">
+    <form action="/upload" method="post" enctype="multipart/form-data">
+      <input type="file" name="file">
+      <button>Upload</button>
+    </form>
+    <button onclick="restartAll()">🔄 Restart ALL</button>
+  </div>
+</div>
+
+{% for f in files %}
+<div class="card script" data-name="{{f}}">
+  <h3>
+    {{f}}
+    {% if f in running %}
+      <span class="running">● RUNNING</span>
+    {% else %}
+      <span class="stopped">● STOPPED</span>
+    {% endif %}
+  </h3>
+
+  <small id="stats-{{f}}">CPU: 0% | RAM: 0MB</small>
+
+  <div class="row">
+    <button onclick="run('{{f}}')">▶ Run</button>
+    <button class="stop" onclick="stop('{{f}}')">⏹ Stop</button>
+    <button onclick="restart('{{f}}')">🔁 Restart</button>
+    <button class="delete" onclick="del('{{f}}')">🗑 Delete</button>
+  </div>
+
+  <label>
+    <input type="checkbox" checked onchange="toggleScroll(this)">
+    Auto-scroll logs
+  </label>
+
+  <pre id="log-{{f}}" style="height:220px;overflow:auto;background:#020617;border-radius:10px;padding:8px"></pre>
+</div>
+{% endfor %}
+
+<script>
+let autoScroll = true
+
+function toggleScroll(el){ autoScroll = el.checked }
+
+function run(n){
+ fetch("/run",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})
+}
+function stop(n){
+ fetch("/stop",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})
+}
+function restart(n){
+ fetch("/restart",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})
+}
+function del(n){
+ fetch("/delete",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n})})
+ .then(()=>location.reload())
+}
+function restartAll(){
+ fetch("/restart-all",{method:"POST"})
+}
+
+function filter(){
+ let q = document.getElementById("search").value.toLowerCase()
+ document.querySelectorAll(".script").forEach(s=>{
+   s.style.display = s.dataset.name.toLowerCase().includes(q) ? "block":"none"
+ })
+}
+
+function update(){
+ {% for f in files %}
+ fetch("/log-text/{{f}}").then(r=>r.text()).then(t=>{
+   let el=document.getElementById("log-{{f}}")
+   el.textContent=t
+   if(autoScroll) el.scrollTop=el.scrollHeight
+ })
+ fetch("/stats/{{f}}").then(r=>r.json()).then(d=>{
+   document.getElementById("stats-{{f}}").textContent =
+    `CPU: ${d.cpu}% | RAM: ${d.ram}MB`
+ })
+ {% endfor %}
+}
+
+setInterval(update,2000)
+update()
+</script>
+
+</body>
+      </html>

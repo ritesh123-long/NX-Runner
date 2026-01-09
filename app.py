@@ -1,3 +1,4 @@
+import psutil
 import os, subprocess, threading, zipfile, time
 from flask import Flask, render_template, request, redirect, session, jsonify
 from config import PANEL_PASSWORD
@@ -31,7 +32,45 @@ def dashboard():
         files=os.listdir(SCRIPTS),
         running=list(processes.keys())
     )
+@app.route("/stats/<name>")
+def stats(name):
+    p = processes.get(name)
+    if not p:
+        return jsonify({"cpu":0,"ram":0})
 
+    try:
+        proc = psutil.Process(p.pid)
+        return jsonify({
+            "cpu": proc.cpu_percent(interval=0.1),
+            "ram": round(proc.memory_info().rss / 1024 / 1024, 1)
+        })
+    except:
+        return jsonify({"cpu":0,"ram":0})
+
+@app.route("/restart", methods=["POST"])
+def restart():
+    name = request.json["name"]
+    stop()
+    time.sleep(1)
+    return run()
+
+@app.route("/restart-all", methods=["POST"])
+def restart_all():
+    for n in list(processes.keys()):
+        processes[n].terminate()
+        del processes[n]
+        time.sleep(0.5)
+        threading.Thread(target=runner, args=(n,), daemon=True).start()
+    return "ok"
+
+@app.route("/log-text/<name>")
+def log_text(name):
+    path = os.path.join(LOGS, name + ".log")
+    if not os.path.exists(path):
+        return ""
+    with open(path) as f:
+        return f.read()[-6000:]
+        
 # ---------------- RUN SCRIPT ----------------
 def runner(name):
     path = os.path.join(SCRIPTS, name)
